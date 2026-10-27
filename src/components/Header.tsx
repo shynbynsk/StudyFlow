@@ -1,11 +1,14 @@
 import React from 'react';
-import { Plus, BookOpen, Layers, Lightbulb, FileCheck } from 'lucide-react';
+import { Plus, BookOpen, Layers, Lightbulb, FileCheck, Award, Trophy } from 'lucide-react';
 
 interface HeaderProps {
   currentTab: 'list' | 'kanban' | 'guide';
   onTabChange: (tab: 'list' | 'kanban' | 'guide') => void;
   onOpenCreate: () => void;
   onOpenSpec: () => void;
+  onOpenBadges: () => void;
+  unlockedBadgesCount: number;
+  totalBadgesCount: number;
   totalCount: number;
 }
 
@@ -14,6 +17,9 @@ export const Header: React.FC<HeaderProps> = ({
   onTabChange,
   onOpenCreate,
   onOpenSpec,
+  onOpenBadges,
+  unlockedBadgesCount,
+  totalBadgesCount,
   totalCount
 }) => {
   return (
@@ -61,6 +67,18 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
+              onClick={onOpenBadges}
+              className="hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 py-1 text-slate-600 hover:text-amber-600 group"
+              title="Ver Conquistas e Medalhas"
+            >
+              <Trophy className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
+              <span>Conquistas</span>
+              <span className="font-mono tabular-nums text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">
+                {unlockedBadgesCount}/{totalBadgesCount}
+              </span>
+            </button>
+
+            <button
               onClick={() => onTabChange('guide')}
               className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 py-1 ${
                 currentTab === 'guide' ? 'text-indigo-600 font-semibold border-b-2 border-indigo-600' : ''
@@ -84,7 +102,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={onOpenCreate}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-indigo-600"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-indigo-600 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Cadastrar Objetivo</span>
@@ -112,6 +130,13 @@ export const Header: React.FC<HeaderProps> = ({
           Fluxo
         </button>
         <button
+          onClick={onOpenBadges}
+          className="px-3 py-1.5 rounded-md font-medium text-amber-700 flex items-center gap-1"
+        >
+          <Trophy className="w-3.5 h-3.5" />
+          <span>({unlockedBadgesCount})</span>
+        </button>
+        <button
           onClick={() => onTabChange('guide')}
           className={`px-3 py-1.5 rounded-md font-medium ${
             currentTab === 'guide' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600'
@@ -123,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onOpenSpec}
           className="px-3 py-1.5 rounded-md font-medium text-indigo-600"
         >
-          Sobre V1
+          V1
         </button>
       </div>
     </header>

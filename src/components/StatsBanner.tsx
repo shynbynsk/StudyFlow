@@ -1,13 +1,21 @@
 import React from 'react';
 import { StudyObjective } from '../types/objective';
 import { getDeadlineInfo } from '../utils/date';
-import { Target, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Target, CheckCircle2, Clock, AlertCircle, Trophy } from 'lucide-react';
 
 interface StatsBannerProps {
   objectives: StudyObjective[];
+  unlockedBadgesCount?: number;
+  totalBadgesCount?: number;
+  onOpenBadges?: () => void;
 }
 
-export const StatsBanner: React.FC<StatsBannerProps> = ({ objectives }) => {
+export const StatsBanner: React.FC<StatsBannerProps> = ({ 
+  objectives,
+  unlockedBadgesCount = 0,
+  totalBadgesCount = 8,
+  onOpenBadges
+}) => {
   const total = objectives.length;
   const completed = objectives.filter(o => o.status === 'concluido').length;
   const inProgress = objectives.filter(o => o.status === 'em_andamento').length;
@@ -24,8 +32,20 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({ objectives }) => {
     <div className="bg-white border border-slate-200 rounded-xl p-5 mb-8">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Seu Progresso de Estudos</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <div className="flex items-center gap-3">
+            <h2 className="text-base font-semibold text-slate-900">Seu Progresso de Estudos</h2>
+            {onOpenBadges && (
+              <button
+                onClick={onOpenBadges}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer"
+                title="Abrir quadro de conquistas"
+              >
+                <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                <span>{unlockedBadgesCount} / {totalBadgesCount} Conquistas</span>
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
             Mantenha o foco em um objetivo por vez para construir consistência diária.
           </p>
           

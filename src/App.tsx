@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { StudyObjective, ObjectiveStatus, SortOption } from './types/objective';
+import { Badge } from './types/badge';
+import { evaluateBadges } from './utils/badges';
 import { 
   loadObjectives, 
   saveObjectives, 
@@ -7,7 +9,10 @@ import {
   clearAllObjectives 
 } from './utils/storage';
 import { Header } from './components/Header';
+import { OverviewSection } from './components/OverviewSection';
 import { StatsBanner } from './components/StatsBanner';
+import { BadgesBanner } from './components/BadgesBanner';
+import { BadgesModal } from './components/BadgesModal';
 import { ObjectiveCard } from './components/ObjectiveCard';
 import { KanbanBoard } from './components/KanbanBoard';
 import { StudyGuide } from './components/StudyGuide';
@@ -24,7 +29,7 @@ import {
   Trash, 
   BookMarked,
   Sparkles,
-  Info
+  Trophy
 } from 'lucide-react';
 
 export default function App() {
@@ -40,7 +45,11 @@ export default function App() {
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [objectiveToEdit, setObjectiveToEdit] = useState<StudyObjective | null>(null);
+  const [isBadgesModalOpen, setIsBadgesModalOpen] = useState(false);
   
+  // Top Banner for newly unlocked achievement
+  const [bannerBadge, setBannerBadge] = useState<Badge | null>(null);
+
   const [deleteModalState, setDeleteModalState] = useState<{
     isOpen: boolean;
     id: string;
@@ -69,6 +78,27 @@ export default function App() {
     saveObjectives(objectives);
   }, [objectives]);
 
+  // Evaluate badges whenever objectives change
+  const { badges, newlyUnlocked } = useMemo(() => {
+    return evaluateBadges(objectives);
+  }, [objectives]);
+
+  // Handle newly unlocked badge announcement banner at the top
+  const hasInitialized = useRef(false);
+  useEffect(() => {
+    if (newlyUnlocked.length > 0) {
+      // Pick the latest newly unlocked badge to display at the top
+      const latest = newlyUnlocked[newlyUnlocked.length - 1];
+      setBannerBadge(latest);
+      showToast(`🏆 Conquista Desbloqueada: ${latest.title}!`);
+    }
+  }, [newlyUnlocked]);
+
+  // Count of unlocked badges
+  const unlockedBadgesCount = useMemo(() => {
+    return badges.filter((b) => b.unlockedAt !== null).length;
+  }, [badges]);
+
   // Unique categories for filtering
   const availableCategories = useMemo(() => {
     const set = new Set<string>();
@@ -92,7 +122,7 @@ export default function App() {
         if (categoryFilter !== 'all' && obj.category !== categoryFilter) {
           return false;
         }
-        // Search filter (title or description)
+        // Search filter (title, category or description)
         if (searchTerm.trim()) {
           const term = searchTerm.toLowerCase();
           const matchesTitle = obj.title.toLowerCase().includes(term);
@@ -232,21 +262,106 @@ export default function App() {
     setFocusModalState({ isOpen: true, objective: obj });
   };
 
+  // Helper action: Quick test for the 5-completed milestone
+  const handleSimulateFiveCompleted = () => {
+    const now = new Date().toISOString();
+    const mockFive: StudyObjective[] = [
+      {
+        id: `test-1-${Date.now()}`,
+        title: 'Compreensão de Funções e Métodos em JavaScript',
+        description: 'Fixação de escopo, closures e arrow functions com exercícios.',
+        deadline: '2026-11-10',
+        status: 'concluido',
+        category: 'Tecnologia',
+        priority: 'alta',
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: `test-2-${Date.now()}`,
+        title: 'Leitura e Fichamento de História Contemporânea',
+        description: 'Capítulo sobre a Revolução Industrial e transformações sociais.',
+        deadline: '2026-11-12',
+        status: 'concluido',
+        category: 'História',
+        priority: 'media',
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: `test-3-${Date.now()}`,
+        title: 'Resolução de 20 Questões de Cinemática',
+        description: 'Movimento Uniforme e Acelerado para o vestibular.',
+        deadline: '2026-11-14',
+        status: 'concluido',
+        category: 'Física',
+        priority: 'alta',
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: `test-4-${Date.now()}`,
+        title: 'Gramática: Concordância Verbal e Nominal',
+        description: 'Revisão dos 10 casos especiais mais cobrados em concursos.',
+        deadline: '2026-11-18',
+        status: 'concluido',
+        category: 'Português',
+        priority: 'media',
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: `test-5-${Date.now()}`,
+        title: 'Prática de Conversação em Língua Inglesa',
+        description: 'Gravar 3 áudios de 2 minutos descrevendo rotina e planos futuros.',
+        deadline: '2026-11-20',
+        status: 'concluido',
+        category: 'Idiomas',
+        priority: 'baixa',
+        createdAt: now,
+        updatedAt: now
+      }
+    ];
+
+    setObjectives(mockFive);
+    showToast('Carregados 5 objetivos concluídos para testar conquista!');
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+      {/* Top Achievement Notification Banner */}
+      <BadgesBanner
+        unlockedBadge={bannerBadge}
+        onDismiss={() => setBannerBadge(null)}
+        onViewAll={() => {
+          setBannerBadge(null);
+          setIsBadgesModalOpen(true);
+        }}
+      />
+
       {/* Top Bar Navigation */}
       <Header
         currentTab={currentTab}
         onTabChange={setCurrentTab}
         onOpenCreate={handleOpenCreate}
         onOpenSpec={() => setIsSpecModalOpen(true)}
+        onOpenBadges={() => setIsBadgesModalOpen(true)}
+        unlockedBadgesCount={unlockedBadgesCount}
+        totalBadgesCount={badges.length}
         totalCount={objectives.length}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Progress & Overview Banner */}
-        <StatsBanner objectives={objectives} />
+        {/* Overview Section with Recharts Pie Chart & Status Distribution */}
+        <OverviewSection 
+          objectives={objectives} 
+          selectedStatusFilter={statusFilter}
+          onSelectStatusFilter={setStatusFilter}
+          unlockedBadgesCount={unlockedBadgesCount}
+          totalBadgesCount={badges.length}
+          onOpenBadges={() => setIsBadgesModalOpen(true)}
+        />
 
         {/* Tab 1: List / Cards View */}
         {currentTab === 'list' && (
@@ -267,7 +382,7 @@ export default function App() {
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
                       Limpar
                     </button>
@@ -364,8 +479,17 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Helper reset buttons */}
+                {/* Helper reset & simulate buttons */}
                 <div className="flex items-center gap-3 text-xs text-slate-500">
+                  <button
+                    onClick={handleSimulateFiveCompleted}
+                    className="hover:text-amber-600 transition-colors cursor-pointer flex items-center gap-1 font-medium"
+                    title="Carregar 5 objetivos concluídos para testar marco de 5 objetivos"
+                  >
+                    <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Testar Marco de 5</span>
+                  </button>
+                  <span aria-hidden="true">·</span>
                   <button
                     onClick={handleResetToSamples}
                     className="hover:text-indigo-600 transition-colors cursor-pointer flex items-center gap-1"
@@ -401,7 +525,7 @@ export default function App() {
                 <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
                   {searchTerm || statusFilter !== 'all' || categoryFilter !== 'all'
                     ? 'Tente ajustar os filtros ou pesquisar por outro termo para encontrar o que procura.'
-                    : 'Comece cadastrando seu primeiro objetivo de estudo para dar o primeiro passo com foco e clareza.'}
+                    : 'Cadastre seu primeiro objetivo para desbloquear a conquista "Primeiro Objetivo Criado"!'}
                 </p>
                 <div className="mt-6 flex items-center justify-center gap-3">
                   {searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' ? (
@@ -496,6 +620,14 @@ export default function App() {
 
           <div className="flex items-center gap-4 text-xs">
             <button
+              onClick={() => setIsBadgesModalOpen(true)}
+              className="text-amber-700 hover:underline cursor-pointer flex items-center gap-1"
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              <span>Conquistas ({unlockedBadgesCount}/{badges.length})</span>
+            </button>
+            <span aria-hidden="true">·</span>
+            <button
               onClick={() => setIsSpecModalOpen(true)}
               className="text-indigo-600 hover:underline cursor-pointer"
             >
@@ -529,6 +661,12 @@ export default function App() {
         objective={focusModalState.objective}
         onClose={() => setFocusModalState({ isOpen: false, objective: null })}
         onMarkCompleted={(id) => handleStatusChange(id, 'concluido')}
+      />
+
+      <BadgesModal
+        isOpen={isBadgesModalOpen}
+        badges={badges}
+        onClose={() => setIsBadgesModalOpen(false)}
       />
 
       <ProductSpecModal
