@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StudyObjective, ObjectiveStatus, Priority, Subtask } from '../types/objective';
-import { X, Plus, Trash, HelpCircle } from 'lucide-react';
+import { X, Trash } from 'lucide-react';
 
 interface ObjectiveModalProps {
   isOpen: boolean;
@@ -35,10 +35,13 @@ export const ObjectiveModal: React.FC<ObjectiveModalProps> = ({
       setPriority(objectiveToEdit.priority || 'media');
       setSubtasks(objectiveToEdit.subtasks || []);
     } else {
-      // Default initial date: 7 days from today
+      // Default initial date: 7 days from today in local time
       const defaultDate = new Date();
       defaultDate.setDate(defaultDate.getDate() + 7);
-      const formattedDefault = defaultDate.toISOString().split('T')[0];
+      const year = defaultDate.getFullYear();
+      const month = String(defaultDate.getMonth() + 1).padStart(2, '0');
+      const day = String(defaultDate.getDate()).padStart(2, '0');
+      const formattedDefault = `${year}-${month}-${day}`;
 
       setTitle('');
       setDescription('');
@@ -68,8 +71,12 @@ export const ObjectiveModal: React.FC<ObjectiveModalProps> = ({
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSubtaskTitle.trim()) return;
+    const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? `sub-${crypto.randomUUID()}` 
+      : `sub-${Date.now()}`;
+
     const newTask: Subtask = {
-      id: `sub-${Date.now()}`,
+      id: uniqueId,
       title: newSubtaskTitle.trim(),
       completed: false
     };

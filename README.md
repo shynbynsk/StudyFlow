@@ -39,7 +39,7 @@ O **StudyFlow** resolve isso centralizando o essencial: **Título, Descrição, 
   - 🔵 **Em andamento**
   - ⚪ **Não iniciado**
   - 🟡 **Pausado**
-- Filtro interativo ao clicar nas fatias do gráfico ou nos cartões de status.
+- Filtro interativo bidirecional ao clicar nas fatias do gráfico ou nos cartões de status.
 - Contador central com o total de objetivos e taxa de conclusão geral em porcentagem.
 
 ### 🏆 Sistema de Conquistas e Badges Educacionais
@@ -56,12 +56,12 @@ O **StudyFlow** resolve isso centralizando o essencial: **Título, Descrição, 
 
 ### 🔄 Modos de Visualização & Produtividade
 - **Visão em Lista / Cards:** Busca em tempo real por título, matéria ou descrição, filtros segmentados e ordenação por prazo ou criação.
-- **Visão em Fluxo (Kanban):** Quadro visual organizado por colunas com movimentação rápida de status em 1 clique.
-- **Temporizador de Foco Pomodoro (25 min):** Cronômetro integrado diretamente aos cards para transformar planejamento em ação imediata.
+- **Visão em Fluxo (Kanban):** Quadro visual organizado por colunas com suporte a busca e filtros por matéria.
+- **Temporizador de Foco Pomodoro (25 min):** Cronômetro integrado aos cards com sinal sonoro suave via Web Audio API e opção de conclusão rápida.
 - **Guia Pedagógico do Estudante:** Dicas com metodologia SMART, fatiamento de tarefas e conselhos de consistência.
 
 ### 💾 Persistência Local Contínua (`localStorage`)
-- Todos os dados (objetivos cadastrados, alterações, subtarefas e medalhas conquistadas) são sincronizados no `localStorage` do navegador. Os dados permanecem salvos após recarregar ou reabrir a página.
+- Todos os dados (objetivos cadastrados, alterações, subtarefas e medalhas conquistadas) são sincronizados no `localStorage` do navegador.
 
 ---
 
@@ -70,10 +70,9 @@ O **StudyFlow** resolve isso centralizando o essencial: **Título, Descrição, 
 - **[React 19](https://react.dev/)** — Biblioteca reativa para construção de interfaces componentizadas.
 - **[TypeScript](https://www.typescriptlang.org/)** — Tipagem estática robusta para contratos de dados e segurança de código.
 - **[Vite](https://vitejs.dev/)** — Ferramenta de build moderna e ultrarrápida.
-- **[Tailwind CSS v4](https://tailwindcss.com/)** — Estilização utilitária com design limpo, acessível e sem dependência de classes legadas.
+- **[Tailwind CSS v4](https://tailwindcss.com/)** — Estilização utilitária com design limpo e acessível.
 - **[Recharts](https://recharts.org/)** — Renderização responsiva do gráfico de pizza da seção Visão Geral.
 - **[Lucide React](https://lucide.dev/)** — Pacote de ícones SVG semânticos e consistentes.
-- **[Motion](https://motion.dev/)** — Animações e transições de feedback visual.
 
 ---
 
@@ -88,7 +87,7 @@ studyflow/
 ├── src/
 │   ├── main.tsx                 # Inicialização do React DOM
 │   ├── App.tsx                  # Componente raiz, estados principais e modais
-│   ├── index.css                # Importação Tailwind CSS e estilos globais
+│   ├── index.css                # Importação Tailwind CSS, animações e scrollbar
 │   ├── types/
 │   │   ├── objective.ts         # Tipos: StudyObjective, ObjectiveStatus, Subtask, etc.
 │   │   └── badge.ts             # Tipos: Badge, BadgeCategory, UnlockedAlert
@@ -96,18 +95,17 @@ studyflow/
 │   │   ├── date.ts              # Utilitários de cálculo de prazos e datas em pt-BR
 │   │   ├── initialData.ts       # Dados de exemplo realistas para iniciantes
 │   │   ├── storage.ts           # Gerenciamento de persistência no localStorage
-│   │   └── badges.ts            # Mecanismo de avaliação e persistência de conquistas
+│   │   └── badges.ts            # Mecanismo puro de avaliação e persistência de conquistas
 │   └── components/
-│       ├── Header.tsx           # Barra de navegação superior (Top Bar Contract)
+│       ├── Header.tsx           # Barra de navegação superior (Top Bar)
 │       ├── OverviewSection.tsx  # Seção Visão Geral com gráfico de pizza Recharts
-│       ├── StatsBanner.tsx      # Barra de estatísticas e progresso de estudos
 │       ├── ObjectiveCard.tsx    # Card de objetivo com metadados limpos e ações
 │       ├── ObjectiveModal.tsx   # Modal de criação e edição com validação
 │       ├── DeleteConfirmModal.tsx # Diálogo acessível de confirmação de exclusão
 │       ├── KanbanBoard.tsx      # Visão em colunas de fluxo de trabalho
 │       ├── BadgesBanner.tsx     # Faixa comemorativa de nova conquista no topo
 │       ├── BadgesModal.tsx      # Modal com o quadro completo de medalhas
-│       ├── FocusTimerModal.tsx  # Cronômetro Pomodoro de 25 minutos
+│       ├── FocusTimerModal.tsx  # Cronômetro Pomodoro de 25 minutos com alerta sonoro
 │       ├── StudyGuide.tsx       # Guia com dicas pedagógicas e método SMART
 │       └── ProductSpecModal.tsx # Documentação de produto e critérios de teste integrada
 ```
@@ -118,13 +116,13 @@ studyflow/
 
 ### Pré-requisitos
 * **Node.js** (versão 18 ou superior)
-* **npm** ou **yarn**
+* **npm**
 
 ### Passo a Passo
 
-1. **Clone ou acesse o diretório do projeto:**
+1. **Acesse o diretório do projeto:**
    ```bash
-   cd studyflow
+   cd StudyFlow
    ```
 
 2. **Instale as dependências:**

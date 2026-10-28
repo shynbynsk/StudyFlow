@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { StudyObjective, ObjectiveStatus, SortOption } from './types/objective';
 import { Badge } from './types/badge';
-import { evaluateBadges } from './utils/badges';
+import { 
+  evaluateBadges, 
+  getUnlockedTimestamps, 
+  saveUnlockedTimestamps 
+} from './utils/badges';
 import { 
   loadObjectives, 
   saveObjectives, 
@@ -10,7 +14,6 @@ import {
 } from './utils/storage';
 import { Header } from './components/Header';
 import { OverviewSection } from './components/OverviewSection';
-import { StatsBanner } from './components/StatsBanner';
 import { BadgesBanner } from './components/BadgesBanner';
 import { BadgesModal } from './components/BadgesModal';
 import { ObjectiveCard } from './components/ObjectiveCard';
@@ -23,13 +26,13 @@ import { ProductSpecModal } from './components/ProductSpecModal';
 import { 
   Search, 
   Plus, 
-  Filter, 
   ArrowUpDown, 
   RotateCcw, 
   Trash, 
   BookMarked,
   Sparkles,
-  Trophy
+  Trophy,
+  X
 } from 'lucide-react';
 
 export default function App() {
@@ -78,21 +81,34 @@ export default function App() {
     saveObjectives(objectives);
   }, [objectives]);
 
-  // Evaluate badges whenever objectives change
-  const { badges, newlyUnlocked } = useMemo(() => {
-    return evaluateBadges(objectives);
-  }, [objectives]);
+  // Badge state management: Pure evaluation without side-effects in render
+  const [unlockedMap, setUnlockedMap] = useState<Record<string, string>>(() => getUnlockedTimestamps());
 
-  // Handle newly unlocked badge announcement banner at the top
-  const hasInitialized = useRef(false);
+  const { badges, newlyUnlocked, updatedUnlockedMap } = useMemo(() => {
+    return evaluateBadges(objectives, unlockedMap);
+  }, [objectives, unlockedMap]);
+
+  // Synchronize unlocked badges and handle celebratory notification without false alarms on 1st mount
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      // On initial load, silently record any badges that match initial sample data
+      if (Object.keys(updatedUnlockedMap).length > Object.keys(unlockedMap).length) {
+        saveUnlockedTimestamps(updatedUnlockedMap);
+        setUnlockedMap(updatedUnlockedMap);
+      }
+      return;
+    }
+
     if (newlyUnlocked.length > 0) {
-      // Pick the latest newly unlocked badge to display at the top
+      saveUnlockedTimestamps(updatedUnlockedMap);
+      setUnlockedMap(updatedUnlockedMap);
       const latest = newlyUnlocked[newlyUnlocked.length - 1];
       setBannerBadge(latest);
       showToast(`🏆 Conquista Desbloqueada: ${latest.title}!`);
     }
-  }, [newlyUnlocked]);
+  }, [newlyUnlocked, updatedUnlockedMap, unlockedMap]);
 
   // Count of unlocked badges
   const unlockedBadgesCount = useMemo(() => {
@@ -110,7 +126,7 @@ export default function App() {
     return Array.from(set);
   }, [objectives]);
 
-  // Filtered and sorted objectives
+  // Filtered and sorted objectives for List View
   const filteredObjectives = useMemo(() => {
     return objectives
       .filter((obj) => {
@@ -151,6 +167,25 @@ export default function App() {
       });
   }, [objectives, statusFilter, categoryFilter, searchTerm, sortBy]);
 
+  // Filtered objectives for Kanban View (respects search and category while keeping all columns intact)
+  const kanbanObjectives = useMemo(() => {
+    return objectives.filter((obj) => {
+      if (categoryFilter !== 'all' && obj.category !== categoryFilter) {
+        return false;
+      }
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const matchesTitle = obj.title.toLowerCase().includes(term);
+        const matchesDesc = obj.description?.toLowerCase().includes(term);
+        const matchesCategory = obj.category?.toLowerCase().includes(term);
+        if (!matchesTitle && !matchesDesc && !matchesCategory) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [objectives, categoryFilter, searchTerm]);
+
   // Handlers for CRUD
   const handleOpenCreate = () => {
     setObjectiveToEdit(null);
@@ -187,9 +222,13 @@ export default function App() {
       );
       showToast('Objetivo atualizado com sucesso!');
     } else {
-      // Create new
+      // Create new with robust UUID
+      const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? `obj-${crypto.randomUUID()}` 
+        : `obj-${Date.now()}`;
+
       const newObjective: StudyObjective = {
-        id: `obj-${Date.now()}`,
+        id: uniqueId,
         title: data.title,
         description: data.description,
         deadline: data.deadline,
@@ -579,16 +618,40 @@ export default function App() {
         {/* Tab 2: Visual Kanban View */}
         {currentTab === 'kanban' && (
           <div>
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-bold text-slate-900">Fluxo Visual de Estudos</h2>
                 <p className="text-xs text-slate-500">
                   Acompanhe a transição dos seus objetivos da concepção até a conclusão.
                 </p>
+                {(searchTerm || categoryFilter !== 'all') && (
+                  <div className="mt-2 flex items-center gap-2 text-xs">
+                    <span className="text-slate-500 font-medium">Filtrando por:</span>
+                    {categoryFilter !== 'all' && (
+                      <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200">
+                        {categoryFilter}
+                      </span>
+                    )}
+                    {searchTerm && (
+                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                        "{searchTerm}"
+                      </span>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
+                        setCategoryFilter('all');
+                      }}
+                      className="text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-0.5 cursor-pointer ml-1"
+                    >
+                      <X className="w-3 h-3" /> Limpar filtros
+                    </button>
+                  </div>
+                )}
               </div>
               <button
                 onClick={handleOpenCreate}
-                className="px-3.5 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-1 cursor-pointer"
+                className="self-start sm:self-auto px-3.5 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Novo Objetivo
@@ -596,7 +659,7 @@ export default function App() {
             </div>
 
             <KanbanBoard
-              objectives={objectives}
+              objectives={kanbanObjectives}
               onEdit={handleOpenEdit}
               onDelete={handlePromptDelete}
               onStatusChange={handleStatusChange}

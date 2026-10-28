@@ -64,6 +64,22 @@ const STATUS_CONFIG: Record<
   }
 };
 
+interface ChartItem {
+  id: ObjectiveStatus;
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    payload?: ChartItem;
+  }>;
+}
+
 export const OverviewSection: React.FC<OverviewSectionProps> = ({
   objectives,
   selectedStatusFilter,
@@ -87,27 +103,27 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   // Prepare chart data for Recharts
-  const chartData = [
+  const chartData: ChartItem[] = [
     {
-      id: 'concluido' as ObjectiveStatus,
+      id: 'concluido' as const,
       name: STATUS_CONFIG.concluido.label,
       value: completed,
       color: STATUS_CONFIG.concluido.color
     },
     {
-      id: 'em_andamento' as ObjectiveStatus,
+      id: 'em_andamento' as const,
       name: STATUS_CONFIG.em_andamento.label,
       value: inProgress,
       color: STATUS_CONFIG.em_andamento.color
     },
     {
-      id: 'nao_iniciado' as ObjectiveStatus,
+      id: 'nao_iniciado' as const,
       name: STATUS_CONFIG.nao_iniciado.label,
       value: notStarted,
       color: STATUS_CONFIG.nao_iniciado.color
     },
     {
-      id: 'pausado' as ObjectiveStatus,
+      id: 'pausado' as const,
       name: STATUS_CONFIG.pausado.label,
       value: paused,
       color: STATUS_CONFIG.pausado.color
@@ -115,7 +131,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
   ].filter(item => item.value > 0);
 
   // Custom clean tooltip for Recharts
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const data = payload[0];
       const percent = total > 0 ? Math.round((data.value / total) * 100) : 0;
@@ -183,10 +199,10 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
                     paddingAngle={3}
                     dataKey="value"
                     cursor="pointer"
-                    onClick={(data: any) => {
-                      const statusId = data?.payload?.id || data?.id;
+                    onClick={(entry) => {
+                      const statusId = (entry as { payload?: { id?: ObjectiveStatus } })?.payload?.id;
                       if (statusId) {
-                        onSelectStatusFilter(statusId as ObjectiveStatus);
+                        onSelectStatusFilter(statusId);
                       }
                     }}
                   >

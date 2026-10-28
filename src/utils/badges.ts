@@ -7,7 +7,10 @@ export function getUnlockedTimestamps(): Record<string, string> {
   try {
     const raw = localStorage.getItem(BADGES_STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed;
+      }
     }
   } catch (err) {
     console.error('Erro ao ler conquistas do localStorage:', err);
@@ -15,24 +18,47 @@ export function getUnlockedTimestamps(): Record<string, string> {
   return {};
 }
 
+export function saveUnlockedTimestamps(timestamps: Record<string, string>): void {
+  try {
+    localStorage.setItem(BADGES_STORAGE_KEY, JSON.stringify(timestamps));
+  } catch (err) {
+    console.error('Erro ao salvar conquistas no localStorage:', err);
+  }
+}
+
 export function saveUnlockedTimestamp(badgeId: string): void {
   try {
     const existing = getUnlockedTimestamps();
     if (!existing[badgeId]) {
       existing[badgeId] = new Date().toISOString();
-      localStorage.setItem(BADGES_STORAGE_KEY, JSON.stringify(existing));
+      saveUnlockedTimestamps(existing);
     }
   } catch (err) {
     console.error('Erro ao salvar conquista no localStorage:', err);
   }
 }
 
-export function evaluateBadges(objectives: StudyObjective[]): {
+export function resetUnlockedBadges(): void {
+  try {
+    localStorage.removeItem(BADGES_STORAGE_KEY);
+  } catch (err) {
+    console.error('Erro ao limpar conquistas do localStorage:', err);
+  }
+}
+
+/**
+ * Pure evaluation function: computes badge states without modifying storage directly.
+ */
+export function evaluateBadges(
+  objectives: StudyObjective[],
+  unlockedMap: Record<string, string> = {}
+): {
   badges: Badge[];
   newlyUnlocked: Badge[];
+  updatedUnlockedMap: Record<string, string>;
 } {
-  const unlockedMap = getUnlockedTimestamps();
   const newlyUnlocked: Badge[] = [];
+  const updatedUnlockedMap = { ...unlockedMap };
 
   const totalCreated = objectives.length;
   const totalCompleted = objectives.filter(o => o.status === 'concluido').length;
@@ -151,13 +177,15 @@ export function evaluateBadges(objectives: StudyObjective[]): {
     }
   ];
 
+  const now = new Date().toISOString();
+
   const badges: Badge[] = definitions.map(def => {
     const wasAlreadyUnlocked = Boolean(unlockedMap[def.id]);
     let unlockedAt = unlockedMap[def.id] || null;
 
     if (def.condition && !wasAlreadyUnlocked) {
-      unlockedAt = new Date().toISOString();
-      saveUnlockedTimestamp(def.id);
+      unlockedAt = now;
+      updatedUnlockedMap[def.id] = now;
       newlyUnlocked.push({
         id: def.id,
         title: def.title,
@@ -188,5 +216,5 @@ export function evaluateBadges(objectives: StudyObjective[]): {
     };
   });
 
-  return { badges, newlyUnlocked };
+  return { badges, newlyUnlocked, updatedUnlockedMap };
 }
